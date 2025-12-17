@@ -1,1 +1,1958 @@
-document 
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Снежинки-слова - Игра</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #0a141e 0%, #1a2a3a 100%);
+            color: #ecf0f1;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #0a141e;
+        }
+
+        #uiOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .panel {
+            background: rgba(30, 40, 50, 0.9);
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 2px solid #87CEEB;
+            margin: 15px;
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+        }
+
+        #scorePanel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            min-width: 160px;
+        }
+
+        #levelPanel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            text-align: right;
+            min-width: 160px;
+        }
+
+        #progressPanel {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        #pauseBtn {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        #dictionaryBtn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #34495e;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #87CEEB, #4682B4);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px rgba(135, 206, 235, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #87CEEB, #4682B4);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(135, 206, 235, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(135, 206, 235, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        #mobileKeyboard {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(30, 40, 50, 0.95);
+            padding: 10px;
+            display: none;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+            z-index: 1000;
+            border-top: 2px solid #87CEEB;
+            backdrop-filter: blur(10px);
+        }
+
+        .key {
+            background: linear-gradient(45deg, #87CEEB, #4682B4);
+            color: white;
+            border: none;
+            padding: 12px 6px;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 8px rgba(135, 206, 235, 0.3);
+        }
+
+        .key:active {
+            background: #4682B4;
+            transform: scale(0.95);
+            box-shadow: 0 1px 4px rgba(135, 206, 235, 0.3);
+        }
+
+        #zoomedWord {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 40, 50, 0.95);
+            padding: 25px;
+            border-radius: 20px;
+            border: 3px solid #87CEEB;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            z-index: 999;
+            display: none;
+            min-width: 280px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #zoomedWord .word-text {
+            margin-bottom: 20px;
+            line-height: 1.4;
+            letter-spacing: 1px;
+        }
+
+        #zoomedWord .hint {
+            font-family: 'Nunito', sans-serif;
+            font-size: 16px;
+            color: #87CEEB;
+            margin-top: 10px;
+            font-weight: 400;
+        }
+
+        #modeSelection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .mode-card {
+            background: rgba(30, 40, 50, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #87CEEB;
+            text-align: center;
+            margin: 15px;
+            max-width: 450px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .mode-card h2 {
+            color: #87CEEB;
+            margin-bottom: 15px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 22px;
+        }
+
+        .mode-card p {
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        #pauseScreen, #gameOverScreen, #levelUpScreen, #dictionaryScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .screen-content {
+            background: rgba(30, 40, 50, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #87CEEB;
+            text-align: center;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #87CEEB;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(135, 206, 235, 0.4);
+        }
+
+        h2 {
+            color: #87CEEB;
+            font-family: 'Montserrat', sans-serif;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .word-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .word-item {
+            padding: 10px 14px;
+            background: rgba(52, 73, 94, 0.6);
+            border-radius: 8px;
+            border-left: 4px solid #87CEEB;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .word-item.error-word::after {
+            content: "⚠️";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #e74c3c;
+        }
+
+        .correct-letter {
+            color: #2ecc71;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
+        }
+
+        .current-gap {
+            background: rgba(255, 255, 0, 0.4);
+            padding: 2px 4px;
+            border-radius: 4px;
+            animation: pulse 1.2s infinite;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                background: rgba(255, 255, 0, 0.4);
+                box-shadow: 0 0 8px rgba(255, 255, 0, 0.3);
+            }
+            50% { 
+                background: rgba(255, 255, 0, 0.6);
+                box-shadow: 0 0 12px rgba(255, 255, 0, 0.5);
+            }
+        }
+
+        .stats {
+            font-size: 1.1em;
+            margin: 12px 0;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .affirmation {
+            font-size: 1.2em;
+            color: #87CEEB;
+            font-style: italic;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid #87CEEB;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .bonus-panel {
+            position: absolute;
+            top: 80px;
+            left: 15px;
+            background: rgba(30, 40, 50, 0.9);
+            padding: 10px 15px;
+            border-radius: 16px;
+            border: 2px solid #FFD700;
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+            font-size: 12px;
+        }
+
+        .golden-snowflake {
+            color: #FFD700;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .streak-counter {
+            color: #FF6347;
+            font-weight: bold;
+            animation: streakPulse 1s infinite;
+        }
+
+        @keyframes streakPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .comet-trail {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 200, 0.4));
+            border-radius: 50%;
+        }
+
+        .life {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .snowflake-count {
+            color: #87CEEB;
+            font-weight: bold;
+        }
+
+        .golden-count {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        @keyframes snowflakeExplode {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(2) rotate(180deg);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .snowflake-explode {
+            animation: snowflakeExplode 0.6s ease-out forwards;
+        }
+
+        @keyframes goldenGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.7));
+                transform: scale(1);
+            }
+            50% { 
+                filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1));
+                transform: scale(1.1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .panel {
+                padding: 8px 12px;
+                margin: 10px;
+                font-size: 12px;
+                border-radius: 12px;
+            }
+            
+            #scorePanel {
+                top: 10px;
+                left: 10px;
+                min-width: 140px;
+            }
+            
+            #levelPanel {
+                top: 10px;
+                right: 10px;
+                min-width: 140px;
+            }
+            
+            #progressPanel {
+                bottom: 70px;
+                width: 250px;
+            }
+            
+            #pauseBtn {
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            #dictionaryBtn {
+                bottom: 10px;
+                right: 10px;
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+            
+            .screen-content, .mode-card {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            h2 {
+                font-size: 1.4em;
+            }
+            
+            #mobileKeyboard {
+                display: grid;
+            }
+            
+            .key {
+                padding: 12px 4px;
+                font-size: 16px;
+            }
+            
+            #zoomedWord {
+                font-size: 24px;
+                padding: 20px;
+                min-width: 250px;
+            }
+            
+            .bonus-panel {
+                top: 60px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 10px;
+            }
+            
+            .word-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .word-item {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #mobileKeyboard {
+                grid-template-columns: repeat(8, 1fr);
+                gap: 4px;
+                padding: 8px;
+            }
+            
+            .key {
+                padding: 10px 2px;
+                font-size: 14px;
+            }
+            
+            #zoomedWord {
+                font-size: 20px;
+                padding: 15px;
+                min-width: 220px;
+            }
+            
+            #progressPanel {
+                bottom: 60px;
+                width: 220px;
+            }
+            
+            .mode-card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiOverlay">
+            <div id="scorePanel" class="panel">
+                <div>❄️ Снежинок: <span id="snowflakeCount" class="snowflake-count">0</span></div>
+                <div>❤️ Жизни: <span id="lives" class="life">3</span></div>
+                <div>⭐ Уровень: <span id="level">1</span></div>
+                <div>🔥 Серия: <span id="streakCounter" class="streak-counter">0</span></div>
+            </div>
+            
+            <div id="bonusPanel" class="bonus-panel hidden">
+                <div>💰 Бонусы: +<span id="bonusPoints">0</span></div>
+                <div>🌟 Золотых: <span id="goldenCount" class="golden-count">0</span></div>
+                <div>⚡ Быстрых: <span id="quickAnswers">0</span></div>
+            </div>
+            
+            <div id="levelPanel" class="panel">
+                <div>🎯 Режим: <span id="gameMode">Проверка</span></div>
+                <div>📝 Слов: <span id="wordsCompleted">0</span>/<span id="totalWords">8</span></div>
+            </div>
+            
+            <button id="pauseBtn" class="btn">⏸️ Пауза</button>
+            <button id="dictionaryBtn" class="btn">📚 Словарь</button>
+            
+            <div id="progressPanel" class="panel">
+                <div>🎯 Прогресс уровня</div>
+                <div class="progress-bar">
+                    <div id="levelProgress" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран выбора режима -->
+        <div id="modeSelection">
+            <div class="screen-content">
+                <h1>❄️ Снежинки-слова</h1>
+                <p style="font-size: 1.1em; margin-bottom: 30px; color: #87CEEB;">Выберите режим игры</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 500px;">
+                    <div class="mode-card">
+                        <h2>📚 Проверка знаний</h2>
+                        <p>Слова падают по одному. У вас 3 жизни. Жизнь тратится при ошибке или если снежинка упала.</p>
+                        <button id="knowledgeMode" class="btn btn-success">Играть</button>
+                    </div>
+                    
+                    <div class="mode-card">
+                        <h2>⚡ На скорость + Бонусы</h2>
+                        <p>Слова падают быстрее, по несколько сразу. Зарабатывайте бонусы за быстрые ответы и серии правильных слов! Собирайте золотые снежинки!</p>
+                        <button id="speedMode" class="btn btn-danger">Играть</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Мобильная клавиатура -->
+        <div id="mobileKeyboard">
+            <!-- Клавиши будут добавлены через JavaScript -->
+        </div>
+
+        <!-- Увеличенное слово для мобильных -->
+        <div id="zoomedWord" class="hidden">
+            <div class="word-text" id="zoomedWordText"></div>
+            <div class="hint">Нажмите на букву ниже</div>
+        </div>
+
+        <!-- Экран паузы -->
+        <div id="pauseScreen" class="hidden">
+            <div class="screen-content">
+                <h1>⏸️ ПАУЗА</h1>
+                <button id="resumeBtn" class="btn btn-success">▶️ Продолжить</button>
+                <button id="changeModeBtn" class="btn">🎮 Сменить режим</button>
+            </div>
+        </div>
+
+        <!-- Словарь -->
+        <div id="dictionaryScreen" class="hidden">
+            <div class="screen-content">
+                <h1>📚 Словарь</h1>
+                <div id="dictionaryWords" class="word-list"></div>
+                <button id="closeDictionary" class="btn btn-success">Закрыть</button>
+            </div>
+        </div>
+
+        <!-- Экран завершения уровня -->
+        <div id="levelUpScreen" class="hidden">
+            <div class="screen-content">
+                <h1>🎉 УРОВЕНЬ <span id="newLevel">2</span>!</h1>
+                <div id="affirmation" class="affirmation"></div>
+                <div class="stats">
+                    <div>❄️ Снежинок собрано: <span id="levelScore">0</span></div>
+                    <div>💰 Бонусные очки: <span id="bonusScore">0</span></div>
+                    <div>🌟 Золотых снежинок: <span id="goldenScore">0</span></div>
+                    <div>🎯 Следующий уровень: <span id="nextLevelInfo"></span></div>
+                </div>
+                <button id="nextLevelBtn" class="btn btn-success">❄️ Продолжить</button>
+            </div>
+        </div>
+
+        <!-- Экран игры окончена -->
+        <div id="gameOverScreen" class="hidden">
+            <div class="screen-content">
+                <h1>💀 ИГРА ОКОНЧЕНА</h1>
+                <div class="stats">
+                    <div>❄️ Снежинок собрано: <span id="finalSnowflakes">0</span></div>
+                    <div>💰 Бонусные очки: <span id="finalBonus">0</span></div>
+                    <div>🌟 Золотых снежинок: <span id="finalGolden">0</span></div>
+                    <div>🎯 Уровень: <span id="finalLevel">1</span></div>
+                    <div>📝 Всего слов: <span id="totalWordsCompleted">0</span></div>
+                    <div>🔥 Лучшая серия: <span id="bestStreak">0</span></div>
+                </div>
+                <button id="playAgainBtn" class="btn btn-success">🎮 Выбрать режим</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // НОВЫЙ МАССИВ СЛОВ
+        const vocabulary = [
+            {word: "желание", masked: "ж.лание", missing: ["е"]},
+            {word: "желать", masked: "ж.лать", missing: ["е"]},
+            {word: "жираф", masked: "ж.раф", missing: ["и"]},
+            {word: "жокей", masked: "ж.кей", missing: ["о"]},
+            {word: "жонглёр", masked: "ж.нглёр", missing: ["о"]},
+            {word: "жюри", masked: "ж.ри", missing: ["ю"]},
+            {word: "знакомить", masked: "зн.комить", missing: ["а"]},
+            {word: "знакомиться", masked: "зн.комиться", missing: ["а"]},
+            {word: "знакомый", masked: "зн.комый", missing: ["а"]},
+            {word: "знаменитый", masked: "зн.менитый", missing: ["а"]},
+            {word: "знаменовать", masked: "зн.меновать", missing: ["а"]},
+            {word: "игнорировать", masked: "игн.рировать", missing: ["о"]},
+            {word: "идеал", masked: "ид.ал", missing: ["е"]},
+            {word: "идеализировать", masked: "ид.ализировать", missing: ["е"]},
+            {word: "идеалист", masked: "ид.алист", missing: ["е"]},
+            {word: "идеальный", masked: "ид.альный", missing: ["е"]},
+            {word: "иждевенец", masked: "ижд.венец", missing: ["е"]},
+            {word: "иллюзионист", masked: "иллюзи.нист", missing: ["о"]},
+            {word: "индивид", masked: "инд.вид", missing: ["и"]},
+            {word: "индивидуальный", masked: "инд.видуальный", missing: ["и"]},
+            {word: "иней", masked: "ин.й", missing: ["е"]},
+            {word: "инженер", masked: "инж.нер", missing: ["е"]},
+            {word: "инженерный", masked: "инж.нерный", missing: ["е"]},
+            {word: "инженерский", masked: "инж.нерский", missing: ["е"]},
+            {word: "инициатива", masked: "иниц.атива", missing: ["и"]},
+            {word: "инициативный", masked: "иниц.ативный", missing: ["и"]},
+            {word: "интеллект", masked: "инт.ллект", missing: ["е"]},
+            {word: "интеллектуальный", masked: "инт.ллектуальный", missing: ["е"]},
+            {word: "интеллигент", masked: "инт.лл.гент", missing: ["е", "и"]},
+            {word: "интеллигентный", masked: "инт.лл.гентный", missing: ["е", "и"]},
+            {word: "интеллигенция", masked: "инт.лл.генция", missing: ["е", "и"]},
+            {word: "интенсивный", masked: "инт.нсивный", missing: ["е"]},
+            {word: "интерьер", masked: "инт.рьер", missing: ["е"]},
+            {word: "интерьерный", masked: "инт.рьерный", missing: ["е"]},
+            {word: "исказить", masked: "иск. зить", missing: ["а"]},
+            {word: "искажение", masked: "иск.жение", missing: ["а"]},
+            {word: "истина", masked: "ист.на", missing: ["и"]},
+            {word: "истинный", masked: "ист.нный", missing: ["и"]}
+        ];
+
+        const affirmations = [
+            "Ты собрал снегопад знаний! ❄️",
+            "С каждым уровнем твоя грамотность растет! 📚",
+            "Ты - настоящий мастер слов-снежинок! 🌟",
+            "Зимняя буря грамотности под твоей властью! ⛄",
+            "Твои знания сверкают как снег на солнце! ☀️"
+        ];
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resizeCanvas();
+                
+                this.words = [];
+                this.stoppedWords = [];
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.wordsCompleted = 0;
+                this.totalWordsCompleted = 0;
+                this.wordsWithErrors = new Set();
+                this.learnedWords = new Set();
+                this.gameState = 'modeSelection';
+                this.gameMode = 'knowledge';
+                this.spawnTimer = 0;
+                this.particles = [];
+                this.snowflakes = [];
+                this.isMobile = this.checkMobile();
+                this.selectedWord = null;
+                this.maxWordsOnScreen = 1;
+                this.usedWords = new Set();
+                this.needClickSelection = false;
+                
+                // Новые свойства для бонусов
+                this.streak = 0;
+                this.bestStreak = 0;
+                this.bonusPoints = 0;
+                this.quickAnswers = 0;
+                this.goldenSnowflakes = 0;
+                this.goldenSnowflakeActive = false;
+                this.lastAnswerTime = 0;
+                this.comets = [];
+                this.clouds = [];
+                this.stars = [];
+                this.moon = { x: 100, y: 100, size: 40, phase: 0.8 };
+                this.goldenTimer = 0;
+                
+                this.setupEventListeners();
+                this.createBackground();
+                if (this.isMobile) {
+                    this.createMobileKeyboard();
+                }
+                this.gameLoop();
+            }
+
+            checkMobile() {
+                return window.innerWidth <= 768;
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.createBackground();
+            }
+
+            setupEventListeners() {
+                window.addEventListener('resize', () => this.resizeCanvas());
+                window.addEventListener('keydown', (e) => this.handleKeyPress(e));
+                
+                this.canvas.addEventListener('click', (e) => this.handleCanvasTap(e));
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleCanvasTap(e.touches[0]);
+                });
+                
+                document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('resumeBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('nextLevelBtn').addEventListener('click', () => this.nextLevel());
+                document.getElementById('playAgainBtn').addEventListener('click', () => this.showModeSelection());
+                document.getElementById('changeModeBtn').addEventListener('click', () => this.showModeSelection());
+                document.getElementById('knowledgeMode').addEventListener('click', () => this.startGame('knowledge'));
+                document.getElementById('speedMode').addEventListener('click', () => this.startGame('speed'));
+                document.getElementById('dictionaryBtn').addEventListener('click', () => this.showDictionary());
+                document.getElementById('closeDictionary').addEventListener('click', () => this.hideDictionary());
+            }
+
+            startGame(mode) {
+                this.gameMode = mode;
+                this.gameState = 'playing';
+                this.level = 1;
+                this.wordsCompleted = 0;
+                this.totalWordsCompleted = 0;
+                this.lives = 3;
+                this.words = [];
+                this.stoppedWords = [];
+                this.wordsWithErrors.clear();
+                this.learnedWords.clear();
+                this.usedWords.clear();
+                
+                // Сброс бонусов
+                this.streak = 0;
+                this.bonusPoints = 0;
+                this.quickAnswers = 0;
+                this.goldenSnowflakes = 0;
+                this.goldenSnowflakeActive = false;
+                this.lastAnswerTime = 0;
+                
+                if (mode === 'knowledge') {
+                    this.maxWordsOnScreen = 1;
+                    this.spawnTimer = 90;
+                    this.needClickSelection = false;
+                    document.getElementById('bonusPanel').classList.add('hidden');
+                } else {
+                    this.maxWordsOnScreen = 2;
+                    this.spawnTimer = 60;
+                    this.needClickSelection = true;
+                    document.getElementById('bonusPanel').classList.remove('hidden');
+                    this.goldenTimer = Math.random() * 200 + 400;
+                }
+                
+                document.getElementById('gameMode').textContent = mode === 'knowledge' ? 'Проверка' : 'Скорость';
+                document.getElementById('totalWords').textContent = mode === 'knowledge' ? vocabulary.length : '8';
+                document.getElementById('modeSelection').classList.add('hidden');
+                
+                this.updateUI();
+            }
+
+            createBackground() {
+                // Создание звезд
+                this.stars = [];
+                for (let i = 0; i < 120; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * (this.canvas.height * 0.7),
+                        size: Math.random() * 1.2 + 0.5,
+                        brightness: Math.random() * 0.8 + 0.2,
+                        twinkleSpeed: Math.random() * 0.05 + 0.02,
+                        twinkleOffset: Math.random() * Math.PI * 2
+                    });
+                }
+                
+                // Создание облаков
+                this.clouds = [];
+                for (let i = 0; i < 4; i++) {
+                    this.clouds.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * 200,
+                        size: Math.random() * 30 + 50,
+                        speed: Math.random() * 0.2 + 0.1,
+                        opacity: Math.random() * 0.3 + 0.1
+                    });
+                }
+                
+                // Создание фоновых снежинок
+                this.snowflakes = [];
+                for (let i = 0; i < 40; i++) {
+                    this.snowflakes.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speed: Math.random() * 0.5 + 0.2,
+                        opacity: Math.random() * 0.4 + 0.1,
+                        sway: Math.random() * 0.5 - 0.25,
+                        swaySpeed: Math.random() * 0.02 + 0.01,
+                        rotation: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+
+            createGoldenSnowflake() {
+                if (this.gameMode !== 'speed' || this.goldenSnowflakeActive) return;
+                
+                const x = Math.random() * (this.canvas.width - 200) + 100;
+                const speed = 2.5 + this.level * 0.3;
+                
+                // ВЫБИРАЕМ РАНДОМНОЕ СЛОВО ИЗ СЛОВАРЯ ДЛЯ ЗОЛОТОЙ СНЕЖИНКИ
+                const randomWordData = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+                
+                const goldenWord = {
+                    word: randomWordData.word,
+                    masked: randomWordData.masked,
+                    missing: randomWordData.missing,
+                    isGolden: true
+                };
+                
+                const newWord = new SnowflakeWord(goldenWord, x, -80, speed, this.ctx);
+                newWord.isGolden = true;
+                this.words.push(newWord);
+                this.goldenSnowflakeActive = true;
+            }
+
+            showModeSelection() {
+                this.gameState = 'modeSelection';
+                this.hideAllScreens();
+                document.getElementById('modeSelection').classList.remove('hidden');
+            }
+
+            showDictionary() {
+                const dictionaryElement = document.getElementById('dictionaryWords');
+                dictionaryElement.innerHTML = '';
+                
+                // Убираем дублирование, используем Set для уникальных слов
+                const uniqueWords = [...new Set(vocabulary.map(w => w.word))];
+                
+                uniqueWords.forEach(word => {
+                    const wordData = vocabulary.find(w => w.word === word);
+                    const div = document.createElement('div');
+                    const hasError = this.wordsWithErrors.has(word);
+                    div.className = `word-item ${hasError ? 'error-word' : ''}`;
+                    
+                    // Формируем текст с выделением правильных букв зеленым
+                    let displayText = '';
+                    let gapIndex = 0;
+                    
+                    for (let i = 0; i < wordData.masked.length; i++) {
+                        if (wordData.masked[i] === '_' || wordData.masked[i] === '.') {
+                            const correctLetter = wordData.missing[gapIndex];
+                            displayText += `<span class="correct-letter">${correctLetter}</span>`;
+                            gapIndex++;
+                        } else {
+                            displayText += wordData.masked[i];
+                        }
+                    }
+                    
+                    div.innerHTML = `<strong>${wordData.word}</strong><br>${displayText}`;
+                    dictionaryElement.appendChild(div);
+                });
+                
+                this.showScreen('dictionaryScreen');
+            }
+
+            hideDictionary() {
+                document.getElementById('dictionaryScreen').classList.add('hidden');
+            }
+
+            createMobileKeyboard() {
+                const keyboard = document.getElementById('mobileKeyboard');
+                keyboard.innerHTML = '';
+                
+                const neededLetters = this.getNeededLetters();
+                
+                neededLetters.forEach(letter => {
+                    const key = document.createElement('button');
+                    key.className = 'key';
+                    key.textContent = letter;
+                    key.addEventListener('click', () => this.processInput(letter));
+                    keyboard.appendChild(key);
+                });
+            }
+
+            getNeededLetters() {
+                const allMissingLetters = [...new Set(vocabulary.flatMap(word => word.missing))];
+                return allMissingLetters.sort();
+            }
+
+            handleCanvasTap(event) {
+                if (this.gameState !== 'playing' || !this.needClickSelection) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                const tappedWord = this.words.find(word => 
+                    !word.completed && 
+                    Math.abs(word.x - x) < 80 && 
+                    Math.abs(word.y - y) < 80
+                );
+                
+                if (tappedWord) {
+                    this.selectWord(tappedWord);
+                }
+            }
+
+            selectWord(word) {
+                this.selectedWord = word;
+                if (this.isMobile) {
+                    this.showZoomedWord(word);
+                }
+            }
+
+            showZoomedWord(word) {
+                const zoomedElement = document.getElementById('zoomedWord');
+                const textElement = document.getElementById('zoomedWordText');
+                
+                // Для золотой снежинки показываем слово с отметкой бонуса
+                if (word.isGolden) {
+                    const displayText = this.createZoomedDisplayText(word);
+                    textElement.innerHTML = `<span class="golden-snowflake">${displayText}<br>★ БОНУС ★</span>`;
+                } else {
+                    textElement.textContent = this.createZoomedDisplayText(word);
+                }
+                zoomedElement.classList.remove('hidden');
+            }
+
+            createZoomedDisplayText(word) {
+                let result = '';
+                let gapIndex = 0;
+                
+                for (let i = 0; i < word.masked.length; i++) {
+                    if (word.masked[i] === '.' || word.masked[i] === '_') {
+                        if (gapIndex < word.currentGap) {
+                            result += word.correctlyFilled[gapIndex];
+                        } else if (gapIndex === word.currentGap) {
+                            result += "_";
+                        } else {
+                            result += '_';
+                        }
+                        gapIndex++;
+                    } else {
+                        result += word.masked[i];
+                    }
+                }
+                return result;
+            }
+
+            hideZoomedWord() {
+                document.getElementById('zoomedWord').classList.add('hidden');
+                this.selectedWord = null;
+            }
+
+            handleKeyPress(e) {
+                if (this.gameState !== 'playing') return;
+                
+                if (e.key.length === 1 && e.key.match(/[а-яА-Яa-zA-Z]/)) {
+                    this.processInput(e.key.toLowerCase());
+                }
+            }
+
+            processInput(letter) {
+                let targetWord;
+                
+                if (this.gameMode === 'knowledge') {
+                    targetWord = this.words.find(word => !word.completed && !word.error);
+                } else {
+                    targetWord = this.selectedWord || this.words.find(word => !word.completed && !word.error);
+                }
+                
+                if (targetWord) {
+                    const currentTime = Date.now();
+                    const timeSinceLastAnswer = currentTime - this.lastAnswerTime;
+                    this.lastAnswerTime = currentTime;
+                    
+                    if (targetWord.processInput(letter)) {
+                        // Начисление бонусов для режима скорости
+                        if (this.gameMode === 'speed') {
+                            // Бонус за быстрый ответ (менее 2 секунд)
+                            if (timeSinceLastAnswer < 2000 && this.lastAnswerTime !== 0) {
+                                this.bonusPoints += 5;
+                                this.quickAnswers++;
+                                this.createBonusText(targetWord.x, targetWord.y, "+5⚡");
+                            }
+                            
+                            // Бонус за серию правильных ответов
+                            this.streak++;
+                            if (this.streak > this.bestStreak) {
+                                this.bestStreak = this.streak;
+                            }
+                            
+                            // Бонусы за длинные серии
+                            if (this.streak % 5 === 0) {
+                                const streakBonus = this.streak * 2;
+                                this.bonusPoints += streakBonus;
+                                this.createBonusText(targetWord.x, targetWord.y - 30, `+${streakBonus}🔥`);
+                            }
+                        }
+                        
+                        if (targetWord.completed) {
+                            // Особый бонус для золотой снежинки
+                            if (targetWord.isGolden) {
+                                this.goldenSnowflakes++;
+                                this.bonusPoints += 50;
+                                this.createBonusText(targetWord.x, targetWord.y - 60, "+50🌟");
+                                this.goldenSnowflakeActive = false;
+                            }
+                            this.handleWordCompleted(targetWord);
+                        } else if (this.isMobile && this.needClickSelection) {
+                            this.showZoomedWord(targetWord);
+                        }
+                        return true;
+                    } else {
+                        // Добавляем слово с ошибкой в список
+                        this.wordsWithErrors.add(targetWord.originalData.word);
+                        
+                        // Сброс серии при ошибке
+                        if (this.gameMode === 'speed') {
+                            this.streak = 0;
+                        }
+                        this.handleWordError(targetWord);
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            createBonusText(x, y, text) {
+                this.particles.push({
+                    x: x,
+                    y: y,
+                    text: text,
+                    life: 1.0,
+                    speed: -1,
+                    color: text.includes('🌟') ? '#FFD700' : text.includes('🔥') ? '#FF6347' : '#87CEEB'
+                });
+            }
+
+            handleWordCompleted(word) {
+                word.startExplodeAnimation();
+                // Разный цвет взрыва для золотой снежинки
+                const particleColor = word.isGolden ? '#FFD700' : '#87CEEB';
+                this.createSnowExplosion(word.x, word.y, word.isGolden ? 25 : 15, particleColor);
+                
+                setTimeout(() => {
+                    this.wordsCompleted++;
+                    this.totalWordsCompleted++;
+                    if (!word.isGolden) {
+                        this.learnedWords.add(word.originalData.word);
+                    }
+                    this.words = this.words.filter(w => w !== word);
+                    
+                    if (this.isMobile && this.needClickSelection) {
+                        this.hideZoomedWord();
+                    }
+                    
+                    if (this.gameMode === 'knowledge') {
+                        if (this.wordsCompleted >= vocabulary.length) {
+                            this.gameOver(true);
+                        }
+                    } else {
+                        if (this.wordsCompleted >= 8) {
+                            this.levelUp();
+                        }
+                    }
+                    
+                    this.updateUI();
+                }, 500);
+            }
+
+            handleWordError(word) {
+                if (this.gameMode === 'knowledge') {
+                    this.lives--;
+                    if (this.lives <= 0) {
+                        this.gameOver(false);
+                    }
+                }
+                if (this.isMobile && this.needClickSelection) {
+                    this.showZoomedWord(word);
+                }
+                this.updateUI();
+            }
+
+            spawnWord() {
+                if (this.words.length >= this.maxWordsOnScreen) return;
+                
+                let availableWords;
+                if (this.gameMode === 'knowledge') {
+                    availableWords = vocabulary.filter(word => !this.usedWords.has(word.word));
+                    if (availableWords.length === 0) {
+                        this.usedWords.clear();
+                        availableWords = vocabulary;
+                    }
+                } else {
+                    availableWords = vocabulary;
+                }
+                
+                const wordData = availableWords[Math.floor(Math.random() * availableWords.length)];
+                this.usedWords.add(wordData.word);
+                
+                const x = Math.random() * (this.canvas.width - 300) + 150;
+                const baseSpeed = this.gameMode === 'knowledge' ? 1.5 : 2.0;
+                const speed = baseSpeed + this.level * 0.4;
+                
+                const newWord = new SnowflakeWord(wordData, x, -80, speed, this.ctx);
+                this.words.push(newWord);
+                
+                if (!this.needClickSelection && !this.selectedWord) {
+                    this.selectWord(newWord);
+                }
+            }
+
+            levelUp() {
+                this.level++;
+                this.wordsCompleted = 0;
+                this.words = [];
+                this.stoppedWords = [];
+                this.spawnTimer = 50;
+                this.maxWordsOnScreen = Math.min(this.level + 1, 3);
+                
+                this.createFireworks();
+                
+                document.getElementById('newLevel').textContent = this.level;
+                document.getElementById('affirmation').textContent = 
+                    affirmations[Math.floor(Math.random() * affirmations.length)];
+                document.getElementById('levelScore').textContent = this.totalWordsCompleted;
+                document.getElementById('bonusScore').textContent = this.bonusPoints;
+                document.getElementById('goldenScore').textContent = this.goldenSnowflakes;
+                document.getElementById('nextLevelInfo').textContent = 
+                    `Слов одновременно: ${this.maxWordsOnScreen}`;
+                
+                this.showScreen('levelUpScreen');
+                this.gameState = 'levelUp';
+            }
+
+            createFireworks() {
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const x = Math.random() * this.canvas.width;
+                        const y = Math.random() * this.canvas.height;
+                        this.createSnowExplosion(x, y, 6);
+                    }, i * 50);
+                }
+            }
+
+            createSnowExplosion(x, y, count, color = '#87CEEB') {
+                for (let i = 0; i < count; i++) {
+                    this.particles.push(new SnowParticle(x, y, this.ctx, color));
+                }
+            }
+
+            nextLevel() {
+                this.hideAllScreens();
+                this.gameState = 'playing';
+            }
+
+            togglePause() {
+                if (this.gameState === 'playing') {
+                    this.showPauseScreen();
+                    this.gameState = 'paused';
+                } else if (this.gameState === 'paused') {
+                    this.hideAllScreens();
+                    this.gameState = 'playing';
+                }
+            }
+
+            showPauseScreen() {
+                this.showScreen('pauseScreen');
+            }
+
+            showScreen(screenId) {
+                document.querySelectorAll('#pauseScreen, #gameOverScreen, #levelUpScreen, #dictionaryScreen')
+                    .forEach(screen => screen.classList.add('hidden'));
+                document.getElementById(screenId).classList.remove('hidden');
+            }
+
+            hideAllScreens() {
+                document.querySelectorAll('#pauseScreen, #gameOverScreen, #levelUpScreen, #dictionaryScreen')
+                    .forEach(screen => screen.classList.add('hidden'));
+                this.hideZoomedWord();
+            }
+
+            update() {
+                if (this.gameState !== 'playing') return;
+
+                // Обновление облаков
+                this.clouds.forEach(cloud => {
+                    cloud.x += cloud.speed;
+                    if (cloud.x > this.canvas.width + cloud.size) {
+                        cloud.x = -cloud.size;
+                    }
+                });
+
+                // Обновление комет
+                this.comets.forEach((comet, index) => {
+                    comet.x += comet.speedX;
+                    comet.y += comet.speedY;
+                    comet.life -= 0.01;
+                    
+                    if (comet.life <= 0 || comet.x < -100 || comet.x > this.canvas.width + 100 || 
+                        comet.y < -100 || comet.y > this.canvas.height + 100) {
+                        this.comets.splice(index, 1);
+                    }
+                });
+
+                // Случайное появление кометы
+                if (Math.random() < 0.001) {
+                    this.createComet();
+                }
+
+                // Таймер для золотой снежинки
+                if (this.gameMode === 'speed' && !this.goldenSnowflakeActive) {
+                    this.goldenTimer--;
+                    if (this.goldenTimer <= 0) {
+                        this.createGoldenSnowflake();
+                        this.goldenTimer = Math.random() * 200 + 400;
+                    }
+                }
+
+                // Обновление слов
+                this.words.forEach(word => {
+                    if (word.update()) {
+                        if (word.y >= this.canvas.height - 60 && !word.completed && !word.exploding) {
+                            this.handleFallenWord(word);
+                        }
+                    }
+                });
+                
+                // Обновление фоновых снежинок
+                this.snowflakes.forEach(flake => {
+                    flake.y += flake.speed;
+                    flake.x += flake.sway * Math.sin(flake.y * flake.swaySpeed);
+                    flake.rotation += 0.01;
+                    
+                    if (flake.y > this.canvas.height) {
+                        flake.y = 0;
+                        flake.x = Math.random() * this.canvas.width;
+                    }
+                });
+                
+                // Спавн новых слов
+                this.spawnTimer--;
+                if (this.spawnTimer <= 0) {
+                    this.spawnWord();
+                    this.spawnTimer = this.gameMode === 'knowledge' ? 120 : 80 - (this.level * 5);
+                }
+                
+                // Обновление частиц и бонусных текстов
+                this.particles = this.particles.filter(particle => {
+                    if (particle.update) {
+                        return particle.update();
+                    } else {
+                        // Для бонусных текстов
+                        particle.y += particle.speed;
+                        particle.life -= 0.02;
+                        return particle.life > 0;
+                    }
+                });
+                
+                // Проверка условия проигрыша для режима скорости
+                if (this.gameMode === 'speed' && this.stoppedWords.length >= 10) {
+                    this.gameOver(false);
+                }
+            }
+
+            createComet() {
+                const startX = Math.random() < 0.5 ? -50 : this.canvas.width + 50;
+                const startY = Math.random() * this.canvas.height * 0.5;
+                
+                this.comets.push({
+                    x: startX,
+                    y: startY,
+                    speedX: startX < 0 ? Math.random() * 3 + 2 : -Math.random() * 3 - 2,
+                    speedY: Math.random() * 1 - 0.5,
+                    size: Math.random() * 3 + 2,
+                    life: 1.0,
+                    color: '#A3D9FF'
+                });
+            }
+
+            handleFallenWord(word) {
+                // Добавляем слово в список с ошибками
+                this.wordsWithErrors.add(word.originalData.word);
+                
+                if (word.isGolden) {
+                    this.goldenSnowflakeActive = false;
+                }
+                
+                if (this.gameMode === 'speed') {
+                    word.y = this.canvas.height - 60 - (this.stoppedWords.length * 70);
+                    word.speed = 0;
+                    this.stoppedWords.push(word);
+                    this.words = this.words.filter(w => w !== word);
+                } else {
+                    this.stoppedWords.push(word);
+                    this.words = this.words.filter(w => w !== word);
+                    this.lives--;
+                    if (this.lives <= 0) {
+                        this.gameOver(false);
+                    }
+                }
+                
+                if (this.selectedWord === word) {
+                    this.selectedWord = this.words.find(w => !w.completed) || null;
+                    if (this.isMobile && this.selectedWord && this.needClickSelection) {
+                        this.showZoomedWord(this.selectedWord);
+                    }
+                }
+                
+                this.updateUI();
+            }
+
+            gameOver(isVictory) {
+                document.getElementById('finalSnowflakes').textContent = this.totalWordsCompleted;
+                document.getElementById('finalBonus').textContent = this.bonusPoints;
+                document.getElementById('finalGolden').textContent = this.goldenSnowflakes;
+                document.getElementById('finalLevel').textContent = this.level;
+                document.getElementById('totalWordsCompleted').textContent = this.totalWordsCompleted;
+                document.getElementById('bestStreak').textContent = this.bestStreak;
+                
+                if (isVictory) {
+                    document.querySelector('#gameOverScreen h1').textContent = '🎉 ПОБЕДА!';
+                }
+                
+                this.showScreen('gameOverScreen');
+                this.gameState = 'gameOver';
+                this.hideZoomedWord();
+            }
+
+            updateUI() {
+                document.getElementById('snowflakeCount').textContent = this.totalWordsCompleted;
+                document.getElementById('lives').textContent = this.lives;
+                document.getElementById('level').textContent = this.level;
+                document.getElementById('wordsCompleted').textContent = this.wordsCompleted;
+                document.getElementById('streakCounter').textContent = this.streak;
+                
+                // Обновление бонусной панели
+                if (this.gameMode === 'speed') {
+                    document.getElementById('bonusPoints').textContent = this.bonusPoints;
+                    document.getElementById('goldenCount').textContent = this.goldenSnowflakes;
+                    document.getElementById('quickAnswers').textContent = this.quickAnswers;
+                }
+                
+                const progress = this.gameMode === 'knowledge' ? 
+                    (this.wordsCompleted / vocabulary.length) * 100 : 
+                    (this.wordsCompleted / 8) * 100;
+                document.getElementById('levelProgress').style.width = progress + '%';
+            }
+
+            draw() {
+                // Очистка холста
+                this.ctx.fillStyle = '#0a141e';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Рисование звезд с мерцанием
+                const currentTime = Date.now() * 0.001;
+                this.stars.forEach(star => {
+                    const twinkle = Math.sin(currentTime * star.twinkleSpeed + star.twinkleOffset) * 0.3 + 0.7;
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness * twinkle * 0.8})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                // Рисование луны
+                this.drawMoon();
+                
+                // Рисование облаков
+                this.clouds.forEach(cloud => {
+                    this.ctx.fillStyle = `rgba(150, 170, 200, ${cloud.opacity})`;
+                    this.drawCloud(cloud.x, cloud.y, cloud.size);
+                });
+                
+                // Рисование комет
+                this.comets.forEach(comet => {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = comet.life;
+                    this.ctx.fillStyle = comet.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(comet.x, comet.y, comet.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Хвост кометы
+                    const gradient = this.ctx.createLinearGradient(
+                        comet.x, comet.y,
+                        comet.x - comet.speedX * 20, comet.y - comet.speedY * 20
+                    );
+                    gradient.addColorStop(0, `rgba(163, 217, 255, ${comet.life * 0.5})`);
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(comet.x, comet.y);
+                    this.ctx.lineTo(comet.x - comet.speedX * 20, comet.y - comet.speedY * 20);
+                    this.ctx.lineTo(comet.x - comet.speedX * 20 + 5, comet.y - comet.speedY * 20);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.restore();
+                });
+                
+                // Рисование фоновых снежинок
+                this.drawBackgroundSnowflakes();
+                
+                // Рисование остановившихся слов
+                this.stoppedWords.forEach(word => word.drawStopped());
+                
+                // Рисование активных слов
+                this.words.forEach(word => {
+                    word.isSelected = (word === this.selectedWord);
+                    word.draw();
+                });
+                
+                // Рисование частиц и бонусных текстов
+                this.particles.forEach(particle => {
+                    if (particle.draw) {
+                        particle.draw();
+                    } else {
+                        // Рисование бонусных текстов
+                        this.ctx.save();
+                        this.ctx.globalAlpha = particle.life;
+                        this.ctx.fillStyle = particle.color;
+                        this.ctx.font = 'bold 20px Montserrat';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(particle.text, particle.x, particle.y);
+                        this.ctx.restore();
+                    }
+                });
+            }
+
+            drawMoon() {
+                // Внешнее свечение
+                const glow = this.ctx.createRadialGradient(
+                    this.moon.x, this.moon.y, 0,
+                    this.moon.x, this.moon.y, this.moon.size * 2
+                );
+                glow.addColorStop(0, 'rgba(255, 255, 220, 0.2)');
+                glow.addColorStop(1, 'rgba(255, 255, 220, 0)');
+                
+                this.ctx.fillStyle = glow;
+                this.ctx.beginPath();
+                this.ctx.arc(this.moon.x, this.moon.y, this.moon.size * 2, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Основная часть луны
+                this.ctx.fillStyle = '#F8F8D8';
+                this.ctx.beginPath();
+                this.ctx.arc(this.moon.x, this.moon.y, this.moon.size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Кратеры на луне
+                this.ctx.fillStyle = '#E8E8C8';
+                this.ctx.beginPath();
+                this.ctx.arc(this.moon.x - 10, this.moon.y - 6, 4, 0, Math.PI * 2);
+                this.ctx.arc(this.moon.x + 8, this.moon.y + 4, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            drawCloud(x, y, size) {
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+                this.ctx.arc(size * 0.8, -size * 0.3, size * 0.7, 0, Math.PI * 2);
+                this.ctx.arc(size * 1.4, size * 0.1, size * 0.6, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.restore();
+            }
+
+            drawBackgroundSnowflakes() {
+                this.snowflakes.forEach(flake => {
+                    this.ctx.save();
+                    this.ctx.translate(flake.x, flake.y);
+                    this.ctx.rotate(flake.rotation);
+                    this.ctx.globalAlpha = flake.opacity;
+                    
+                    this.ctx.strokeStyle = 'rgba(200, 220, 255, 0.6)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.lineCap = 'round';
+                    
+                    // Упрощенная снежинка для фона
+                    for (let i = 0; i < 6; i++) {
+                        this.ctx.rotate(Math.PI / 3);
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, 0);
+                        this.ctx.lineTo(0, flake.size * 3);
+                        this.ctx.stroke();
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, flake.size);
+                        this.ctx.lineTo(-flake.size, flake.size * 1.5);
+                        this.ctx.moveTo(0, flake.size);
+                        this.ctx.lineTo(flake.size, flake.size * 1.5);
+                        this.ctx.stroke();
+                    }
+                    
+                    this.ctx.restore();
+                });
+            }
+
+            gameLoop() {
+                this.update();
+                this.draw();
+                this.updateUI();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        // ИСПРАВЛЕННЫЙ КЛАСС SnowflakeWord - теперь слова не переворачиваются
+        class SnowflakeWord {
+            constructor(wordData, x, y, speed, ctx) {
+                this.originalData = wordData;
+                this.word = wordData.word;
+                this.masked = wordData.masked;
+                this.missingLetters = [...wordData.missing];
+                this.x = x;
+                this.y = y;
+                this.speed = speed;
+                this.ctx = ctx;
+                this.currentGap = 0;
+                this.correctlyFilled = [];
+                this.error = null;
+                this.errorTimer = 0;
+                this.completed = false;
+                this.exploding = false;
+                this.explodeProgress = 0;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+                this.isSelected = false;
+                this.hoverAlpha = 0.3;
+                this.gapBlinkTimer = 0;
+                this.isGolden = wordData.isGolden || false;
+                
+                this.gapPositions = this.findGapPositions();
+            }
+
+            findGapPositions() {
+                const positions = [];
+                for (let i = 0; i < this.masked.length; i++) {
+                    if (this.masked[i] === '.' || this.masked[i] === '_') {
+                        positions.push(i);
+                    }
+                }
+                return positions;
+            }
+
+            processInput(letter) {
+                if (this.completed || this.error || this.exploding) return false;
+
+                if (this.currentGap < this.missingLetters.length) {
+                    const correctLetter = this.missingLetters[this.currentGap];
+                    
+                    if (letter === correctLetter) {
+                        this.correctlyFilled.push(letter);
+                        this.currentGap++;
+                        
+                        if (this.currentGap >= this.missingLetters.length) {
+                            this.completed = true;
+                        }
+                        return true;
+                    } else {
+                        this.error = letter;
+                        this.errorTimer = 1.5;
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            startExplodeAnimation() {
+                this.exploding = true;
+                this.explodeProgress = 0;
+            }
+
+            update() {
+                if (this.exploding) {
+                    this.explodeProgress += 0.03;
+                    if (this.explodeProgress >= 1) {
+                        return false;
+                    }
+                    return true;
+                }
+
+                if (!this.completed && this.speed > 0) {
+                    this.y += this.speed;
+                    this.rotation += this.rotationSpeed;
+                }
+
+                if (this.error) {
+                    this.errorTimer -= 0.016;
+                    if (this.errorTimer <= 0) {
+                        this.error = null;
+                    }
+                }
+
+                if (this.isSelected) {
+                    this.hoverAlpha = Math.min(this.hoverAlpha + 0.05, 1);
+                } else {
+                    this.hoverAlpha = Math.max(this.hoverAlpha - 0.05, 0.3);
+                }
+
+                this.gapBlinkTimer += 0.05;
+
+                return true;
+            }
+
+            draw() {
+                if (this.exploding) {
+                    this.drawWithExplosion();
+                } else {
+                    // Рисуем снежинку с вращением
+                    this.drawSnowflakeShape();
+                    // Рисуем текст БЕЗ вращения
+                    this.drawWordText();
+                }
+            }
+
+            drawStopped() {
+                this.drawSnowflakeShape();
+                this.drawWordText();
+            }
+
+            drawWithExplosion() {
+                this.ctx.save();
+                this.ctx.translate(this.x, this.y);
+                
+                const scale = 1 + this.explodeProgress;
+                const rotation = this.rotation + this.explodeProgress * Math.PI * 2;
+                const alpha = 1 - this.explodeProgress;
+                
+                this.ctx.rotate(rotation);
+                this.ctx.scale(scale, scale);
+                this.ctx.globalAlpha = alpha;
+                
+                this.drawSnowflakeShape();
+                
+                // Компенсируем вращение для текста при взрыве
+                this.ctx.rotate(-rotation);
+                this.drawWordText();
+                
+                this.ctx.restore();
+            }
+
+            drawSnowflakeShape() {
+                this.ctx.save();
+                this.ctx.translate(this.x, this.y);
+                this.ctx.rotate(this.rotation);
+                
+                const alpha = this.isSelected ? 1 : 0.6;
+                const color = this.isGolden ? '#FFD700' : `rgba(135, 206, 235, ${alpha})`;
+                const lineWidth = this.isSelected ? 3 : this.isGolden ? 2 : 1.5;
+                
+                if (this.isGolden) {
+                    // Анимация свечения для золотой снежинки
+                    const glowIntensity = 0.7 + 0.3 * Math.sin(Date.now() * 0.005);
+                    this.ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+                    this.ctx.shadowBlur = 8 * glowIntensity;
+                }
+                
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = lineWidth;
+                this.ctx.lineCap = 'round';
+                this.ctx.globalAlpha = alpha;
+                
+                // Упрощенная снежинка
+                for (let i = 0; i < 6; i++) {
+                    this.ctx.rotate(Math.PI / 3);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 0);
+                    this.ctx.lineTo(0, 40);
+                    this.ctx.stroke();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 12);
+                    this.ctx.lineTo(-10, 16);
+                    this.ctx.moveTo(0, 12);
+                    this.ctx.lineTo(10, 16);
+                    this.ctx.stroke();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 28);
+                    this.ctx.lineTo(-8, 36);
+                    this.ctx.moveTo(0, 28);
+                    this.ctx.lineTo(8, 36);
+                    this.ctx.stroke();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 40, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                // Центральный круг
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, this.isGolden ? 5 : 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
+                this.ctx.restore();
+            }
+
+            drawWordText() {
+                const displayText = this.getDisplayText();
+                const fontSize = this.isGolden ? 20 : 18;
+                const alpha = this.isSelected ? 1 : 0.7;
+                const textColor = this.isGolden ? '#FFD700' : `rgba(255, 255, 255, ${alpha})`;
+                const shadowColor = this.isGolden ? 'rgba(255, 215, 0, 0.6)' : `rgba(0, 0, 0, ${alpha})`;
+                
+                this.ctx.save();
+                this.ctx.translate(this.x, this.y);
+                // НЕ вращаем контекст для текста!
+                // this.ctx.rotate(this.rotation); // ЗАКОММЕНТИРОВАНО
+                
+                this.ctx.font = `600 ${fontSize}px 'Montserrat', sans-serif`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                
+                // Тень для текста
+                this.ctx.strokeStyle = shadowColor;
+                this.ctx.lineWidth = this.isGolden ? 5 : 3;
+                this.ctx.strokeText(displayText, 0, 0);
+                
+                // Основной текст
+                this.ctx.fillStyle = textColor;
+                this.ctx.fillText(displayText, 0, 0);
+                
+                // Дополнительная надпись для золотой снежинки
+                if (this.isGolden) {
+                    this.ctx.font = `bold 12px 'Montserrat', sans-serif`;
+                    this.ctx.fillStyle = '#FFD700';
+                    this.ctx.fillText('★ БОНУС ★', 0, 20);
+                }
+                
+                this.ctx.restore();
+            }
+
+            getDisplayText() {
+                if (this.error) {
+                    return this.getErrorText();
+                }
+                
+                let result = '';
+                let gapIndex = 0;
+                const shouldBlink = Math.sin(this.gapBlinkTimer) > 0;
+                
+                for (let i = 0; i < this.masked.length; i++) {
+                    if (this.masked[i] === '.' || this.masked[i] === '_') {
+                        if (gapIndex < this.currentGap) {
+                            result += this.correctlyFilled[gapIndex];
+                        } else if (gapIndex === this.currentGap) {
+                            result += "_";
+                        } else {
+                            result += '_';
+                        }
+                        gapIndex++;
+                    } else {
+                        result += this.masked[i];
+                    }
+                }
+                
+                return result;
+            }
+
+            getErrorText() {
+                let result = '';
+                let gapIndex = 0;
+                
+                for (let i = 0; i < this.masked.length; i++) {
+                    if (this.masked[i] === '.' || this.masked[i] === '_') {
+                        if (gapIndex < this.currentGap) {
+                            result += this.correctlyFilled[gapIndex];
+                        } else if (gapIndex === this.currentGap) {
+                            if (Math.floor(this.errorTimer * 10) % 2 === 0) {
+                                result += this.error;
+                            } else {
+                                result += '_';
+                            }
+                        } else {
+                            result += '_';
+                        }
+                        gapIndex++;
+                    } else {
+                        result += this.masked[i];
+                    }
+                }
+                
+                return result;
+            }
+        }
+
+        class SnowParticle {
+            constructor(x, y, ctx, color = '#87CEEB') {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 4 + 1;
+                this.speedX = Math.random() * 6 - 3;
+                this.speedY = Math.random() * 6 - 3;
+                this.life = 1.0;
+                this.ctx = ctx;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+                this.color = color;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= 0.02;
+                this.size -= 0.05;
+                this.rotation += this.rotationSpeed;
+                return this.life > 0 && this.size > 0;
+            }
+
+            draw() {
+                this.ctx.save();
+                this.ctx.translate(this.x, this.y);
+                this.ctx.rotate(this.rotation);
+                this.ctx.globalAlpha = this.life;
+                
+                this.ctx.strokeStyle = this.color;
+                this.ctx.lineWidth = 1.5;
+                this.ctx.lineCap = 'round';
+                
+                // Упрощенная частица снежинки
+                for (let i = 0; i < 6; i++) {
+                    this.ctx.rotate(Math.PI / 3);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 0);
+                    this.ctx.lineTo(0, this.size * 1.5);
+                    this.ctx.stroke();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, this.size * 0.8);
+                    this.ctx.lineTo(-this.size * 0.6, this.size * 1.2);
+                    this.ctx.moveTo(0, this.size * 0.8);
+                    this.ctx.lineTo(this.size * 0.6, this.size * 1.2);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.restore();
+            }
+        }
+
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>
